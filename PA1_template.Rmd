@@ -1,25 +1,92 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
+title: "Activity Monitoring"
+
 output: 
-  html_document:
-    keep_md: true
+  html_document: 
+    keep_md: true 
 ---
 
 
-## Loading and preprocessing the data
+## R Markdown
+
+This is an R Markdown document.This document has the steps to analyze the activity monitoring data. 
+
+```{r Load,echo = TRUE}
+activity_data<- read.csv("activity.csv", header=TRUE, sep = ',', stringsAsFactors = FALSE)
+str(activity_data)
+processed_data<-na.omit(activity_data)
+
+```
+
+```{r total_steps, echo=TRUE}
+total_steps<-aggregate(processed_data$steps,list(processed_data$date),sum)
+total_steps
+colnames(total_steps)<-c('date','tot_steps')
+
+```
 
 
+```{r Total steps plot, echo=TRUE}
+total_steps_plot<-hist(total_steps$tot_steps,xlab='Total Steps',main= 'Total Steps across all day',col='light blue')
+total_steps_plot
 
-## What is mean total number of steps taken per day?
+```
 
+```{r mean & median, echo=TRUE}
+mean_steps<-mean(total_steps$tot_steps)
+median_steps<-median(total_steps$tot_steps)
+paste("mean = ",mean_steps)
+paste("median = ",median_steps)
 
+```
 
-## What is the average daily activity pattern?
+```{r average daily activity, echo = TRUE}
+avg_steps<-aggregate(processed_data$steps,list(processed_data$interval),mean)
+colnames(avg_steps)<-c('interval','avg_steps')
+```
 
+```{r plot, echo=TRUE}
+avg_steps_plot<-plot(avg_steps$interval, avg_steps$avg_steps,type='l',xlab='Interval',ylab= 'Average steps', main= 'Average Steps across all day',col='blue')
+avg_steps_plot
 
+```
 
-## Imputing missing values
+```{r Interval with Max steps, echo=TRUE}
+max_step_interval<-avg_steps[which.max(avg_steps$avg_steps),1]
+paste("5 minute interval with maximum no.of steps is : ", max_step_interval)
+```
 
+```{r Imputing missing values, echo = TRUE}
+imputed_data_set<-activity_data
+total_na<-sum(is.na(activity_data))
+paste("Total no.of missing values : ",total_na)
+avg_steps_all_day<-mean(processed_data$steps)
+imputed_data_set[is.na(imputed_data_set)]<-avg_steps_all_day
+sum(is.na(imputed_data_set))
+tot_steps_wo_na<-aggregate(imputed_data_set$steps,list(imputed_data_set$date),sum)
+tot_steps_wo_na
+colnames(tot_steps_wo_na)<-c('date','tot_steps')
+tot_steps_wo_na_plot<-hist(tot_steps_wo_na$tot_steps,xlab='Total Steps',main= 'Total Steps across all day',col='orange')
+tot_steps_wo_na_plot
+mean_steps_wo_na<-mean(tot_steps_wo_na$tot_steps)
+median_steps_wo_na<-median(tot_steps_wo_na$tot_steps)
+paste("mean = ",mean_steps_wo_na)
+paste("median = ",median_steps_wo_na)
+paste("Mean is same as the original data set. Median differs by :" , median_steps_wo_na-median_steps)
+```
 
-
-## Are there differences in activity patterns between weekdays and weekends?
+```{r Activity pattern , echo=TRUE}
+imputed_data_set$day<-weekdays(as.Date(imputed_data_set$date))
+weekday<-c("Monday","Tuesday","Wednesday","Thursday","Friday")
+imputed_data_set$day_type<-ifelse(imputed_data_set$day %in% weekday , "Weekday", "Weekend")
+avg_steps_wo_na<-aggregate(imputed_data_set$steps,list(imputed_data_set$interval,imputed_data_set$day_type),mean)
+colnames(avg_steps_wo_na)<-c('interval','day_type','avg_steps')
+library(ggplot2)
+final_plot<-ggplot(avg_steps_wo_na,aes(interval,avg_steps))+
+  facet_grid(day_type~.)+
+  geom_line(color="blue")+
+  xlab("5-Minute Interval")+
+  ylab("Avg number of steps")
+final_plot
+  
+```
